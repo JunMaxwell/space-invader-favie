@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Project</title>
+</head>
+<body>
+    <video id="background-video" style="position: absolute; width: 10px; visibility:hidden" loop autoplay muted >
+        <source src="../static/Backgrounds/Background.webm"  type="video/webm">
+    </video>
+    <video id="game-background-video" style="position: absolute; width: 10px; visibility:hidden" loop autoplay muted >
+        <source src="../static/Backgrounds/GameContainerBackground.webm"  type="video/webm">
+    </video>
+    <video id="selector-background-video" style="position: absolute; width: 10px; visibility:hidden" loop autoplay muted >
+        <source src="../static/Backgrounds/SelectorContainerBackground.webm"  type="video/webm">
+    </video>
+    <canvas class="webgl"></canvas>
+    <div id="popUp">
+        <div id="text-container">
+            <p id="popUp-text"></p>
+            <div id="button-container">
+                <div id="button-background">
+                    <div id="button-text" onclick="window.experience.world.popUp.changePopUpText()"></div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+</body>
+</html>
