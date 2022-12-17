@@ -7,7 +7,7 @@ import PlayerSelector from "./PlayerSelector.js"
 import Rocket from "./Rocket.js";
 
 export default class Player {
-    constructor(_options){
+    constructor(_options) {
         this.scene = _options.scene;
         this.camera = _options.camera;
         this.renderer = _options.renderer;
@@ -48,54 +48,54 @@ export default class Player {
         })
     }
 
-    setUpPlayer(){
+    setUpPlayer() {
         this.setGeometry();
         this.setMaterial();
         this.setPlayer();
         this.setPlayerColliderZone();
     }
 
-    setGeometry(){
+    setGeometry() {
         this.geometry = this.parameter.playerGeometry
     }
 
-    setMaterial(){
-        this.material = new THREE.MeshBasicMaterial({map: this.playerAsset ,color:this.parameter.blue, transparent: true})
+    setMaterial() {
+        this.material = new THREE.MeshBasicMaterial({ map: this.playerAsset, color: this.parameter.blue, transparent: true })
     }
 
-    setPlayer(){
+    setPlayer() {
         this.player = new THREE.Mesh(this.geometry, this.material)
         this.player.position.copy(this.parameter.startPosition)
 
         this.scene.add(this.player)
     }
 
-    setPlayerColliderZone(){
-        this.colliderZone = new THREE.Mesh(new THREE.PlaneGeometry(120,10))
-        this.colliderZone.position.set(-40,-38,0.1)
+    setPlayerColliderZone() {
+        this.colliderZone = new THREE.Mesh(new THREE.PlaneGeometry(120, 10))
+        this.colliderZone.position.set(-40, -38, 0.1)
         this.colliderZone.visible = false;
         this.colliderZone.geometry.computeBoundingBox()
         this.colliderZone.geometry.userData.obb = new OBB().fromBox3(this.colliderZone.geometry.boundingBox)
         this.colliderZone.userData.obb = new OBB()
-        
+
         this.scene.add(this.colliderZone)
     }
-  
-    movePlayer(deltaT){
+
+    movePlayer(deltaT) {
         this.player.position.x -= this.controller.getXValue() * deltaT
         this.player.position.clamp(this.parameter.minPosition, this.parameter.maxPosition)
     }
 
-    colliderObbUpdate(){
+    colliderObbUpdate() {
         this.colliderZone.userData.obb.copy(this.colliderZone.geometry.userData.obb)
         this.colliderZone.userData.obb.applyMatrix4(this.colliderZone.matrixWorld)
     }
 
-    updatePlayer(color){
+    updatePlayer(color) {
         this.player.material.color = color;
     }
 
-    lauchRocket(){
+    lauchRocket() {
         const rocket = new Rocket({
             scene: this.scene,
             resources: this.resources,
@@ -105,13 +105,13 @@ export default class Player {
         this.rockets.push(rocket)
     }
 
-    rocketsUpdate(deltaT){
-        for(let rocket in this.rockets){
-            if(!this.rockets[rocket].userData.destroyed){
+    rocketsUpdate(deltaT) {
+        for (let rocket in this.rockets) {
+            if (!this.rockets[rocket].userData.destroyed) {
                 this.rockets[rocket].userData.obb.copy(this.rockets[rocket].geometry.userData.obb)
                 this.rockets[rocket].userData.obb.applyMatrix4(this.rockets[rocket].matrixWorld)
             } else {
-                if(this.rockets[rocket].material.opacity > 0){
+                if (this.rockets[rocket].material.opacity > 0) {
                     this.rockets[rocket].material.opacity -= .025;
                 } else {
                     this.disposeRocket(rocket);
@@ -120,13 +120,16 @@ export default class Player {
             }
 
 
-            if(this.rockets[rocket].position.x < this.parameter.maxRocketPosition.x && this.rockets[rocket].position.x > this.parameter.minRocketPosition.x && this.rockets[rocket].position.y < this.parameter.maxRocketPosition.y && this.rockets[rocket].position.y > this.parameter.minRocketPosition.y){
+            if (this.rockets[rocket].position.x < this.parameter.maxRocketPosition.x
+                && this.rockets[rocket].position.x > this.parameter.minRocketPosition.x
+                && this.rockets[rocket].position.y < this.parameter.maxRocketPosition.y
+                && this.rockets[rocket].position.y > this.parameter.minRocketPosition.y) {
                 this.rockets[rocket].position.y += this.rockets[rocket].userData.updateValuePositionY * deltaT;
                 this.rockets[rocket].position.x += this.rockets[rocket].userData.updateValuePositionX * deltaT;
 
                 this.rockets[rocket].position.clamp(this.parameter.minRocketPosition, this.parameter.maxRocketPosition);
             } else {
-                if(this.rockets[rocket].scale.y > this.rocketReduction){
+                if (this.rockets[rocket].scale.y > this.rocketReduction) {
                     this.rockets[rocket].scale.y -= this.parameter.rocketReduction;
                     this.rockets[rocket].position.y += this.rockets[rocket].userData.updateValuePositionY;
                 } else {
@@ -136,23 +139,23 @@ export default class Player {
         }
     }
 
-    disposeRocket(rocket){
+    disposeRocket(rocket) {
         this.rockets[rocket].geometry.dispose()
         for (const key in this.rockets[rocket].material) {
             const value = this.rockets[rocket].material[key]
             if (value && typeof value.dispose === 'function') {
                 value.dispose()
             }
-            }
+        }
         this.scene.remove(this.rockets[rocket])
         this.rockets.splice(rocket, 1);
     }
 
-    update(deltaT){
+    update(deltaT) {
         this.movePlayer(deltaT);
         this.colliderObbUpdate();
 
-        if(this.parameter.fireTimeCount == 0 && this.parameter.canShoot){
+        if (this.parameter.fireTimeCount == 0 && this.parameter.canShoot) {
             this.lauchRocket();
 
             this.parameter.fireTimeCount = this.parameter.fireTime;
@@ -160,7 +163,7 @@ export default class Player {
             this.parameter.fireTimeCount -= 1;
         }
 
-        if(this.rockets.length > 0){
+        if (this.rockets.length > 0) {
             this.rocketsUpdate(deltaT)
         }
 
