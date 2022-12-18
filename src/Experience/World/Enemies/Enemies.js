@@ -94,7 +94,7 @@ export default class Enemies {
         const { delayBetweenSteps } = _enemy.userData;
         const speed = 1 / delayBetweenSteps;
         const distance = _enemy.position.distanceTo(destination);
-        const t = Math.min(1, speed * deltaT);
+        const t = 1.0 - Math.pow(0.1, deltaT * speed);
         _enemy.position.lerp(destination, t);
 
         if (distance < 0.01) {
