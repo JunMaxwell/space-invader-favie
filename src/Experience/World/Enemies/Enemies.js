@@ -9,25 +9,20 @@ export default class Enemies {
         this.resources = _options.resources;
         this.parameter = _options.parameter;
 
-        console.log(
-            {
-                resources: this.resources,
-                parameter: this.parameter
-            }
-        )
+        console.log(this.resources)
 
         this.waves = [];
-        for (let i = 0; i < this.parameter.waveParameters.length; i++) {
-            const wave = this.createWave(this.parameter.waveParameters[i]);
+        this.activeWave = 0;
+        for (let i = 0; i < 3; i++) {
+            let waveParameters = this.parameter.waveParameters[i]
+            const wave = this.createWave(waveParameters);
             this.waves.push(wave);
         }
-
-        console.log(this.waves);
     }
 
-    createEnemy(_enemy, wave) {
+    createEnemy(_enemy) {
         const geometry = _enemy.geometry;
-        const material = new THREE.MeshBasicMaterial({ map: this.resources.items[_enemy.name], color: wave.waveColor, transparent: true });
+        const material = new THREE.MeshBasicMaterial({ map: this.resources.items[_enemy.name], color: _enemy.waveColor, transparent: true });
 
         const enemy = new THREE.Mesh(geometry, material);
         enemy.name = _enemy.name;
@@ -42,7 +37,15 @@ export default class Enemies {
         enemy.userData.destroyed = false;
         enemy.userData.updateValuePositionY = _enemy.ySpeed;
         enemy.userData.updateValuePositionX = _enemy.xAngle;
-        enemy.userData.waveNumber = wave.waveNumber;
+        enemy.userData.waveNumber = _enemy.waveNumber;
+        enemy.userData.maxPosition = {
+            x: _enemy.maxXPosition,
+            y: _enemy.maxYPosition
+        };
+        enemy.userData.minPosition = {
+            x: _enemy.minXPoisition,
+            y: _enemy.minYPoisition
+        };
 
         // console.log(enemy);
         // this.scene.add(enemy);
@@ -50,76 +53,70 @@ export default class Enemies {
     }
 
     createWave(_wave) {
+        const enemies = this;
         const wave = {
-            enemies: [],
-            startPosition: _wave.startPosition,
-            endPostion: _wave.endPostion,
-            minPosition: _wave.minPosition,
-            maxPosition: _wave.maxPosition,
-            enemiesNumber: _wave.enemiesNumber,
             waveNumber: _wave.waveNumber,
-            isFinished: false,
-            isActive: false
-        }
+            waveColor: _wave.waveColor,
+            delayBetweenSteps: _wave.delayBetweenSteps,
+            enemies: []
+        };
 
-        switch (wave.waveNumber) {
-            case 1:
-                wave.waveColor = this.parameter.blue;
-                break;
-            case 2:
-                wave.waveColor = this.parameter.yellow;
-                break;
-            case 3:
-                wave.waveColor = this.parameter.red;
-                break;
-        }
+        for (let i = 0; i < _wave.enemyBehavior.length; i++) {
+            const { type, total, startPosition, path } = _wave.enemyBehavior[i];
+            const enemyParam = {
+                ...enemies.parameter.enemiesParameters[type],
+                name: type,
+                waveNumber: _wave.waveNumber,
+                waveColor: _wave.waveColor,
+            };
+            const enemyGroup = new THREE.Group();
+            enemyGroup.name = type + "_group";
+            enemyGroup.position.copy(startPosition);
+            enemyGroup.userData.path = path;
+            enemyGroup.userData.steps = path.length;
+            enemyGroup.userData.currentStep = 0;
+            enemyGroup.userData.delayBetweenSteps = _wave.delayBetweenSteps;
 
-        for (let i = 0; i < wave.enemiesNumber; i++) {
-            const randomIndex = Math.floor(Math.random() * this.parameter.enemiesParameters.length);
-            const enemyType = this.parameter.enemiesParameters[randomIndex];
-            const enemy = this.createEnemy(enemyType, wave);
-            enemy.position.copy(wave.startPosition);
-            this.scene.add(enemy);
-            wave.enemies.push(enemy);
+            for (let j = 0; j < total; j++) {
+                const enemyMesh = enemies.createEnemy(enemyParam);
+                enemyMesh.position.x = enemyParam.xOffset / 2 * j;
+                enemyGroup.add(enemyMesh);
+            }
+
+            wave.enemies.push(enemyGroup);
+            enemies.scene.add(enemyGroup);
         }
 
         return wave;
     }
-    moveEnemy(_enemy, deltaT) {
-        _enemy.position.y -= _enemy.userData.updateValuePositionY * deltaT;
-        _enemy.position.x -= _enemy.userData.updateValuePositionX * deltaT;
 
-        if (_enemy.position.y > this.parameter.waveParameters[_enemy.userData.waveNumber].maxPosition.y) {
-            _enemy.userData.updateValuePositionY = -_enemy.userData.updateValuePositionY;
-        }
-        if (_enemy.position.y < this.parameter.waveParameters[_enemy.userData.waveNumber].minPosition.y) {
-            _enemy.userData.updateValuePositionY = -_enemy.userData.updateValuePositionY;
-        }
+    moveEnemyGroupToDestination(_enemy, destination, deltaT, onReached) {
+        const { delayBetweenSteps } = _enemy.userData;
+        const speed = 1 / delayBetweenSteps;
+        const distance = _enemy.position.distanceTo(destination);
+        const t = Math.min(1, speed * deltaT);
+        _enemy.position.lerp(destination, t);
 
-        if (_enemy.position.x > this.parameter.waveParameters[_enemy.userData.waveNumber].maxPosition.x) {
-            _enemy.userData.updateValuePositionX = -_enemy.userData.updateValuePositionX;
-        }
-        if (_enemy.position.x < this.parameter.waveParameters[_enemy.userData.waveNumber].minPosition.x) {
-            _enemy.userData.updateValuePositionX = -_enemy.userData.updateValuePositionX;
+        if (distance < 0.01) {
+            onReached();
         }
     }
 
-    updateEnemy(_enemy, deltaT) {
-        if (_enemy.userData.destroyed) {
-            this.scene.remove(_enemy);
-            return;
+    updateEnemyWave(_wave, deltaT) {
+        for (let i = 0; i < _wave.enemies.length; i++) {
+            const enemyGroup = _wave.enemies[i];
+            const { path, steps, currentStep, delayBetweenSteps } = enemyGroup.userData;
+            if (currentStep < steps) {
+                const destination = path[currentStep];
+                this.moveEnemyGroupToDestination(enemyGroup, destination, deltaT, () => {
+                    enemyGroup.userData.currentStep += 1;
+                })
+            }
         }
-
-        this.moveEnemy(_enemy, deltaT);
-
-        _enemy.userData.obb.copy(_enemy.geometry.userData.obb);
-        _enemy.userData.obb.applyMatrix4(_enemy.matrixWorld);
     }
 
     update(deltaT) {
         // First wave
-        for (let i = 0; i < this.waves[0].enemies.length; i++) {
-            this.updateEnemy(this.waves[0].enemies[i], deltaT);
-        }
+        this.updateEnemyWave(this.waves[this.activeWave], deltaT);
     }
 }

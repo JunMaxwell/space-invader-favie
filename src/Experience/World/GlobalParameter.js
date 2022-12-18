@@ -1,5 +1,11 @@
 import * as THREE from "three"
 
+export const maxX = 10;
+export const minX = -90;
+export const maxY = 40;
+export const minY = -40;
+export const enemySize = 10;
+
 export default class GlobalParameter {
     constructor(_options) {
 
@@ -23,6 +29,10 @@ export default class GlobalParameter {
         this.mouse = {}
         this.raycaster = new THREE.Raycaster();
 
+        this.maxX = maxX;
+        this.minX = minX;
+        this.maxY = maxY;
+        this.minY = minY;
     }
 
     reset(waveN, waveD) {
@@ -39,7 +49,7 @@ export default class GlobalParameter {
         this.playerParameter();
         this.selectorsParameter();
 
-        this.enemyParameter();
+        this.enemyTypesParameter();
         this.enemiesWaveParmeter();
     }
 
@@ -72,9 +82,9 @@ export default class GlobalParameter {
     playerParameter() {
         this.playerGeometry = new THREE.PlaneGeometry(17, 12);
 
-        this.startPosition = new THREE.Vector3(-40, -38, this.elementZIndex);
-        this.minPosition = new THREE.Vector3(-90, -38, this.elementZIndex);
-        this.maxPosition = new THREE.Vector3(10, -38, this.elementZIndex);
+        this.startPosition = new THREE.Vector3(-40, minY + 2, this.elementZIndex);
+        this.minPosition = new THREE.Vector3(minX, minY + 2, this.elementZIndex);
+        this.maxPosition = new THREE.Vector3(maxX, minY + 2, this.elementZIndex);
 
         this.rocketGeometry = new THREE.PlaneGeometry(1, 5);
         this.destroyedRocketGeometry = new THREE.PlaneGeometry(3, 5);
@@ -83,15 +93,15 @@ export default class GlobalParameter {
         this.fireTime = 25;
         this.fireTimeCount = this.fireTime;
 
-        this.rocketMaxY = 41;
+        this.rocketMaxY = maxY + 1;
 
         this.rocketYSpeed = 1;
         this.rocketYSpeedAfterCollision = -1;
         this.rocketYSpeedAfterDestruction = -.1;
         this.rocketXAngle = 0;
 
-        this.minRocketPosition = new THREE.Vector3(-96, -41, this.elementZIndex);
-        this.maxRocketPosition = new THREE.Vector3(16, 41, this.elementZIndex);
+        this.minRocketPosition = new THREE.Vector3(minX - 6, minY - 1, this.elementZIndex);
+        this.maxRocketPosition = new THREE.Vector3(maxX + 6, maxY + 1, this.elementZIndex);
 
         this.rocketReduction = .4;
     }
@@ -111,9 +121,9 @@ export default class GlobalParameter {
         this.selectorFivePosition = new THREE.Vector3(70, 13.5, this.elementZIndex);
     }
 
-    enemyParameter() {
+    enemyTypesParameter() {
         // Enemy parameters
-        this.enemiesParameters = [];
+        this.enemiesParameters = {};
         for (let i = 0; i < 8; i++) { // There are 8 types of viruses
             const enemy = {
                 name: `virus_${i + 1}`,
@@ -122,28 +132,149 @@ export default class GlobalParameter {
                 xAngle: (i + 1) * 0.01,
                 ySpeedAfterCollision: -1,
                 ySpeedAfterDestruction: -.1,
+                maxXPosition: maxX,
+                minXPoisition: minX,
+                maxYPosition: maxY,
+                minYPoisition: minY,
+                xOffset: 10,
             }
-            this.enemiesParameters.push(enemy);
+            this.enemiesParameters[enemy.name] = enemy;
         }
     }
 
     enemiesWaveParmeter() {
-        this.randomXPosition = () => Math.floor(Math.random() * (10 - -90 + 1)) + -90;
-        this.waveParameters = [];
-        for (let i = 0; i < 3; i++) { // 3 Waves following instructions
-            const wave = {
-                name: `Wave_${i + 1}`,
-                startPosition: new THREE.Vector3(this.randomXPosition(), 42, this.elementZIndex),
-                endPosition: new THREE.Vector3(-40, -42, this.elementZIndex),
-                minPosition: new THREE.Vector3(-96, -42, this.elementZIndex),
-                maxPosition: new THREE.Vector3(16, 42, this.elementZIndex),
-                enemiesNumber: (i + 1) * 5,
-                waveNumber: i + 1,
+        const params = this;
+        this.waveParameters = [
+            {
+                waveNumber: 1,
+                waveColor: this.blue,
+                totalNumberOfEnemies: 15,
+                delayBetweenSteps: 400, // in ms
+                enemyBehavior: [
+                    {
+                        type: `virus_1`,
+                        total: 3,
+                        startPosition: new THREE.Vector3(randomXPos(3 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_2`,
+                        total: 4,
+                        startPosition: new THREE.Vector3(randomXPos(4 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_3`,
+                        total: 3,
+                        startPosition: new THREE.Vector3(randomXPos(3 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(1)],
+                    },
+                    {
+                        type: `virus_1`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(2)],
+                    },
+                ]
+            },
+            {
+                waveNumber: 2,
+                waveColor: this.yellow,
+                totalNumberOfEnemies: 20,
+                delayBetweenSteps: 350, // in ms,
+                enemyBehavior: [
+                    {
+                        type: `virus_4`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(6)],
+                    },
+                    {
+                        type: `virus_5`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(6)],
+                    },
+                    {
+                        type: `virus_6`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(6)],
+                    },
+                    {
+                        type: `virus_5`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(6)],
+                    }
+                ]
+            },
+            {
+                waveNumber: 3,
+                waveColor: this.red,
+                totalNumberOfEnemies: 25,
+                delayBetweenSteps: 300, // in ms,
+                enemyBehavior: [
+                    {
+                        type: `virus_7`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_8`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_2`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_7`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    },
+                    {
+                        type: `virus_8`,
+                        total: 5,
+                        startPosition: new THREE.Vector3(randomXPos(5 * enemySize), maxY, params.elementZIndex),
+                        path: [...generatePath(5)],
+                    }
+                ]
             }
-            this.waveParameters.push(wave);
+        ]
+
+        function randomXPosition() {
+            return Math.floor(Math.random() * (maxX - minX + 1)) + minX;
         }
 
-        // Random int between min: -90 and max: 10
+        function randomXPos(width) {
+            const min = minX + width / 2;
+            const max = maxX - width / 2;
+            return Math.floor(Math.random() * (max - min + 1)) + min;
+        }
+
+        function randomYPosition() {
+            return Math.floor(Math.random() * (maxY - minY + 1)) + minY;
+        }
+
+        function generatePath(steps) {
+            const path = [];
+            const stepSize = Math.floor((maxY - minY) / steps);
+            for (let i = 0; i < steps; i++) {
+                path.push(new THREE.Vector3(randomXPosition(), maxY - (stepSize * i), params.elementZIndex));
+            }
+
+            if (path[path.length - 1].y != minY) {
+                path.push(new THREE.Vector3(randomXPosition(), minY, params.elementZIndex));
+            }
+            return path;
+        }
     }
 
     // Dynamic
