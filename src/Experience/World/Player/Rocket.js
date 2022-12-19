@@ -37,6 +37,7 @@ export default class Rocket {
         this.mesh.userData.collided = false;
         this.mesh.userData.reflected = false;
         this.mesh.userData.destroyed = false;
+        this.mesh.userData.color = this.player.material.color;
         this.mesh.userData.destroyedAsset = {
             geometry: this.parameter.destroyedRocketGeometry,
             material: new THREE.MeshBasicMaterial({map:this.destroyedRocketAsset, color: this.player.material.color, transparent: true})

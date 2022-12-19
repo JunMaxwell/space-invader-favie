@@ -64,8 +64,8 @@ export default class World {
 
         if (this.isReady && this.parameter.canUpdate) {
             this.player.update(deltaT);
-            this.collisionChecker.update();
             this.enemies.update(deltaT);
+            this.collisionChecker.update();
         }
 
     }

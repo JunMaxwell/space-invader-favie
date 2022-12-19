@@ -9,15 +9,28 @@ export default class Enemies {
         this.resources = _options.resources;
         this.parameter = _options.parameter;
 
-        console.log(this.resources)
-
         this.waves = [];
-        this.activeWave = 0;
+        this.enemies = [];
         for (let i = 0; i < 3; i++) {
             let waveParameters = this.parameter.waveParameters[i]
             const wave = this.createWave(waveParameters);
             this.waves.push(wave);
         }
+
+        this.waveController = {
+            activeWave: 0,
+            totalWaves: this.waves.length,
+            delayBetweenWaves: 3000
+        }
+    }
+
+    getUpdatedEnemy(uuid) {
+        return this.enemies.find(enemy => enemy.uuid === uuid)
+    }
+
+    getEnemyWorldPos(uuid) {
+        const enemy = this.getUpdatedEnemy(uuid);
+        return enemy.getWorldPosition(new THREE.Vector3());
     }
 
     createEnemy(_enemy) {
@@ -35,6 +48,7 @@ export default class Enemies {
         enemy.userData.collided = false;
         enemy.userData.reflected = false;
         enemy.userData.destroyed = false;
+        enemy.userData.color = _enemy.waveColor;
         enemy.userData.updateValuePositionY = _enemy.ySpeed;
         enemy.userData.updateValuePositionX = _enemy.xAngle;
         enemy.userData.waveNumber = _enemy.waveNumber;
@@ -46,9 +60,9 @@ export default class Enemies {
             x: _enemy.minXPoisition,
             y: _enemy.minYPoisition
         };
+        enemy.userData.isAlive = true;
 
-        // console.log(enemy);
-        // this.scene.add(enemy);
+        this.enemies.push(enemy);
         return enemy
     }
 
@@ -76,6 +90,7 @@ export default class Enemies {
             enemyGroup.userData.steps = path.length;
             enemyGroup.userData.currentStep = 0;
             enemyGroup.userData.delayBetweenSteps = _wave.delayBetweenSteps;
+            enemyGroup.userData.isAlive = true;
 
             for (let j = 0; j < total; j++) {
                 const enemyMesh = enemies.createEnemy(enemyParam);
@@ -84,7 +99,7 @@ export default class Enemies {
             }
 
             wave.enemies.push(enemyGroup);
-            enemies.scene.add(enemyGroup);
+            // enemies.scene.add(enemyGroup);
         }
 
         return wave;
@@ -103,20 +118,51 @@ export default class Enemies {
     }
 
     updateEnemyWave(_wave, deltaT) {
-        for (let i = 0; i < _wave.enemies.length; i++) {
-            const enemyGroup = _wave.enemies[i];
-            const { path, steps, currentStep, delayBetweenSteps } = enemyGroup.userData;
-            if (currentStep < steps) {
-                const destination = path[currentStep];
-                this.moveEnemyGroupToDestination(enemyGroup, destination, deltaT, () => {
-                    enemyGroup.userData.currentStep += 1;
-                })
+        if (!this.activeGroup)
+            this.activeGroup = {
+                total: _wave.enemies.length,
+                alive: _wave.enemies.length,
+                dead: [],
+            };
+
+        if (this.activeGroup.alive === 0) {
+            this.waveController.activeWave++;
+            delete this.activeGroup;
+            return;
+        }
+
+        const { enemies } = _wave;
+        for (let i = 0; i < enemies.length; i++) {
+            const enemyGroup = enemies[i];
+            if (!enemyGroup.parent || !enemyGroup.parent.isScene) this.scene.add(enemyGroup);
+            const { currentStep, steps, path, isAlive } = enemyGroup.userData;
+
+            if (isAlive) {
+                if (currentStep < steps) {
+                    const destination = path[currentStep];
+                    this.moveEnemyGroupToDestination(enemyGroup, destination, deltaT, () => {
+                        enemyGroup.userData.currentStep++;
+                    });
+                } else {
+                    enemyGroup.userData.isAlive = false;
+                }
+            } else {
+                this.scene.remove(enemyGroup);
+                if (!this.activeGroup.dead.includes(enemyGroup)) {
+                    this.activeGroup.alive--;
+                    this.activeGroup.dead.push(enemyGroup);
+                }
             }
         }
     }
 
     update(deltaT) {
-        // First wave
-        this.updateEnemyWave(this.waves[this.activeWave], deltaT);
+        // Wait for the first wave to be ready
+        if (!this.waves || this.waves.length === 0) return;
+
+        setTimeout(() => {
+            const wave = this.waves[this.waveController.activeWave];
+            this.updateEnemyWave(wave, deltaT);
+        }, this.waveController.delayBetweenWaves) // 3 seconds
     }
 }

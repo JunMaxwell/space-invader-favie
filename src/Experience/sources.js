@@ -114,7 +114,4 @@ export default
         type: "texture",
         path: "./Backgrounds/Retry_Button_Clicked.png"
     }
-
-
-
 ]
