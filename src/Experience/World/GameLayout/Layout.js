@@ -7,6 +7,10 @@ export default class Layout {
         this.parameter = _options.parameter;
         this.resources = _options.resources;
 
+        this.delegate = {
+            onReset: () => {}
+        }
+
         this.setSceneBackground();
         this.setGameBackground();
         this.setSelectorBackground();
@@ -145,6 +149,7 @@ export default class Layout {
 
                 if (!this.parameter.secondPhase) {
                     this.parameter.reset(0, 0);
+                    this.delegate.onReset();
                     this.setlifePoints()
                 } else {
                     this.parameter.reset(3, 3);
@@ -179,4 +184,7 @@ export default class Layout {
         document.addEventListener('mouseup', this.clickUp);
     }
 
+    SetDelegate(_delegate) {
+        Object.assign(this.delegate, _delegate);
+    }
 }

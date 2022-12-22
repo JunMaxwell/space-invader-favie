@@ -8,7 +8,16 @@ export default class Enemies {
         this.renderer = _options.renderer;
         this.resources = _options.resources;
         this.parameter = _options.parameter;
+        this.layout = _options.layout;
+        this.player = _options.player;
+        this.layout.SetDelegate({
+            onReset: () => { this.reset() }
+        })
+        this.reset();
+    }
 
+    reset() {
+        this.removeActivesFromScene();
         this.waves = [];
         this.enemies = [];
         for (let i = 0; i < 3; i++) {
@@ -22,10 +31,34 @@ export default class Enemies {
             totalWaves: this.waves.length,
             delayBetweenWaves: 3000
         }
+
+        this.delegate = {
+
+        }
     }
 
     getUpdatedEnemy(uuid) {
         return this.enemies.find(enemy => enemy.uuid === uuid)
+    }
+
+    removeActivesFromScene() {
+        if (this.activeGroup) {
+            this.activeGroup.reached.forEach(enemyGroup => {
+                this.scene.remove(enemyGroup);
+            });
+            this.activeGroup.dead.forEach(enemyGroup => {
+                this.scene.remove(enemyGroup);
+            })
+            delete this.activeGroup;
+        }
+
+        if (this.waves && this.waves.length > 0) {
+            this.waves.forEach(wave => {
+                wave.enemies.forEach(enemy => {
+                    this.scene.remove(enemy);
+                })
+            })
+        }
     }
 
     createEnemy(_enemy) {
@@ -122,13 +155,19 @@ export default class Enemies {
                 hit: 0,
             };
 
+        const { enemies } = _wave;
+
         if (this.activeGroup.alive === 0 || this.activeGroup.hit === this.activeGroup.total) {
             this.waveController.activeWave++;
-            delete this.activeGroup;
+            enemies.forEach(enemyGroup => {
+                setTimeout(() => {
+                    this.scene.remove(enemyGroup);
+                }, 1000);
+            });
+            this.removeActivesFromScene();
             return;
         }
 
-        const { enemies } = _wave;
         for (let i = 0; i < enemies.length; i++) {
             const enemyGroup = enemies[i];
             if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
@@ -145,18 +184,15 @@ export default class Enemies {
                         enemyGroup.userData.currentStep++;
                     });
                 } else {
-                    enemyGroup.userData.isAlive = false;
                     if (!this.activeGroup.reached.includes(enemyGroup)) {
                         this.activeGroup.hit++;
                         this.activeGroup.reached.push(enemyGroup);
-                        this.scene.remove(enemyGroup);
                     }
                 }
             } else {
                 if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
                     this.activeGroup.alive--;
                     this.activeGroup.dead.push(enemyGroup);
-                    this.scene.remove(enemyGroup);
                 }
             }
         }

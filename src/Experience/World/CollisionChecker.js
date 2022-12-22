@@ -66,6 +66,7 @@ export default class CollisionChecker {
                     let enemyImpact = this.parameter.enemyImpact ?? 1;
                     this.loseLifePoints(enemyImpact);
                     this.enemyController.activeGroup.reached.splice(this.enemyController.activeGroup.reached.indexOf(enemyGroup), 1);
+                    this.scene.remove(enemyGroup);
                 }
             })
         }
