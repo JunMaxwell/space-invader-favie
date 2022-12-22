@@ -9,7 +9,7 @@ export default class CollisionChecker {
         this.popUp = _options.popUp;
 
         this.layout = _options.layout;
-        this.player = _options.player.player;
+        this.player = _options.player;
         this.enemyController = _options.enemies;
         this.enemiesList = _options.enemies.enemies;
     }
@@ -21,6 +21,12 @@ export default class CollisionChecker {
         // Detect when enemy wave get to the player level, if so loose a life point
         // Imagine an effect if rockets color is not same the enemy
 
+        if (!this.enemyController.activeGroup) return;
+        this.enemyController.activeGroup.flying.forEach(enemyGroup => {
+            for (const enemy of enemyGroup.children) {
+                const { obb } = enemy.userData;
+            }
+        })
     }
 
     destroyRocket(rockets, rocket) {

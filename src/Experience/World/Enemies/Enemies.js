@@ -94,6 +94,22 @@ export default class Enemies {
         return enemy
     }
 
+    destroyEnemy(_enemy) {
+        _enemy.userData.destroyed = true;
+        _enemy.userData.isAlive = false;
+        _enemy.material.color.setHex(0x000000);
+        _enemy.geometry.dispose();
+        for (const key in _enemy.material) {
+            const value = _enemy.material[key];
+            if (value && typeof value.dispose === "function") {
+                value.dispose();
+            }
+        }
+
+        this.scene.remove(_enemy);
+        this.enemies = this.enemies.filter(enemy => enemy.uuid !== _enemy.uuid);
+    }
+
     createWave(_wave) {
         const enemies = this;
         const wave = {
@@ -152,6 +168,7 @@ export default class Enemies {
                 alive: _wave.enemies.length,
                 dead: [],
                 reached: [],
+                flying: [..._wave.enemies],
                 hit: 0,
             };
 
@@ -186,12 +203,14 @@ export default class Enemies {
                     if (!this.activeGroup.reached.includes(enemyGroup)) {
                         this.activeGroup.hit++;
                         this.activeGroup.reached.push(enemyGroup);
+                        this.activeGroup.flying.splice(this.activeGroup.flying.indexOf(enemyGroup), 1);
                     }
                 }
             } else {
                 if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
                     this.activeGroup.alive--;
                     this.activeGroup.dead.push(enemyGroup);
+                    this.activeGroup.flying.splice(this.activeGroup.flying.indexOf(enemyGroup), 1);
                 }
             }
         }
@@ -203,6 +222,7 @@ export default class Enemies {
 
         setTimeout(() => {
             const wave = this.waves[this.waveController.activeWave];
+            if (!wave) return;
             this.updateEnemyWave(wave, deltaT);
         }, this.waveController.delayBetweenWaves) // 3 seconds
     }
