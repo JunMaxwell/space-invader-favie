@@ -164,7 +164,6 @@ export default class Enemies {
                     this.scene.remove(enemyGroup);
                 }, 1000);
             });
-            this.removeActivesFromScene();
             return;
         }
 
