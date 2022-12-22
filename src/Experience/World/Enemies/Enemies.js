@@ -28,11 +28,6 @@ export default class Enemies {
         return this.enemies.find(enemy => enemy.uuid === uuid)
     }
 
-    getEnemyWorldPos(uuid) {
-        const enemy = this.getUpdatedEnemy(uuid);
-        return enemy.getWorldPosition(new THREE.Vector3());
-    }
-
     createEnemy(_enemy) {
         const geometry = _enemy.geometry;
         const material = new THREE.MeshBasicMaterial({ map: this.resources.items[_enemy.name], color: _enemy.waveColor, transparent: true });
@@ -123,9 +118,11 @@ export default class Enemies {
                 total: _wave.enemies.length,
                 alive: _wave.enemies.length,
                 dead: [],
+                reached: [],
+                hit: 0,
             };
 
-        if (this.activeGroup.alive === 0) {
+        if (this.activeGroup.alive === 0 || this.activeGroup.hit === this.activeGroup.total) {
             this.waveController.activeWave++;
             delete this.activeGroup;
             return;
@@ -134,7 +131,11 @@ export default class Enemies {
         const { enemies } = _wave;
         for (let i = 0; i < enemies.length; i++) {
             const enemyGroup = enemies[i];
-            if (!enemyGroup.parent || !enemyGroup.parent.isScene) this.scene.add(enemyGroup);
+            if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
+                if (!enemyGroup.parent || !enemyGroup.parent.isScene) {
+                    this.scene.add(enemyGroup);
+                }
+            }
             const { currentStep, steps, path, isAlive } = enemyGroup.userData;
 
             if (isAlive) {
@@ -145,12 +146,17 @@ export default class Enemies {
                     });
                 } else {
                     enemyGroup.userData.isAlive = false;
+                    if (!this.activeGroup.reached.includes(enemyGroup)) {
+                        this.activeGroup.hit++;
+                        this.activeGroup.reached.push(enemyGroup);
+                        this.scene.remove(enemyGroup);
+                    }
                 }
             } else {
-                this.scene.remove(enemyGroup);
-                if (!this.activeGroup.dead.includes(enemyGroup)) {
+                if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
                     this.activeGroup.alive--;
                     this.activeGroup.dead.push(enemyGroup);
+                    this.scene.remove(enemyGroup);
                 }
             }
         }

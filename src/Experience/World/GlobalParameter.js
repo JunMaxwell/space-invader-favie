@@ -256,22 +256,20 @@ export default class GlobalParameter {
             return Math.floor(Math.random() * (max - min + 1)) + min;
         }
         
-        function randomYPos(width) {
-            const size = width * enemySize;
-            const min = minY + size / 2;
-            const max = maxY - size / 2;
-            return Math.floor(Math.random() * (max - min + 1)) + min;
+        function randomYPos(stepSize) {
+            const min = minY + stepSize;
+            return Math.floor(Math.random() * (maxY - min + 1)) + min;
         }
 
         function generatePath(steps, teamSize = 5) {
             const path = [];
             const stepSize = Math.floor((maxY - minY) / steps);
             for (let i = 1; i <= steps; i++) {
-                path.push(new THREE.Vector3(randomXPos(teamSize), randomYPos(teamSize), params.elementZIndex));
+                path.push(new THREE.Vector3(randomXPos(teamSize), randomYPos(stepSize), params.elementZIndex));
             }
 
             if (path[path.length - 1].y != minY) {
-                path.push(new THREE.Vector3(randomXPos(teamSize), minY, params.elementZIndex));
+                path.push(new THREE.Vector3(randomXPos(teamSize), minY - 1, params.elementZIndex));
             }
             return path;
         }

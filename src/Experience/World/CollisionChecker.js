@@ -10,7 +10,7 @@ export default class CollisionChecker {
 
         this.layout = _options.layout;
         this.player = _options.player.player;
-        this.enemies = _options.enemies;
+        this.enemyController = _options.enemies;
         this.enemiesList = _options.enemies.enemies;
     }
 
@@ -59,15 +59,23 @@ export default class CollisionChecker {
     }
 
     checkCollisionBottom() {
-        // Check if the enemies position is lower than the player position
-        // If so, loose a life point
+        if (!this.enemyController.activeGroup) return;
+        if (this.enemyController.activeGroup.reached && this.enemyController.activeGroup.reached.length > 0) {
+            this.enemyController.activeGroup.reached.forEach((enemyGroup) => {
+                if (enemyGroup.position.y < this.parameter.minY && this.parameter.defeat !== 200) {
+                    let enemyImpact = this.parameter.enemyImpact ?? 1;
+                    this.loseLifePoints(enemyImpact);
+                    this.enemyController.activeGroup.reached.splice(this.enemyController.activeGroup.reached.indexOf(enemyGroup), 1);
+                }
+            })
+        }
     }
 
-    loseLifePoints() {
+    loseLifePoints(enemyImpact) {
 
-        this.parameter.lifeNumber -= this.parameter.enemyImpact;
+        this.parameter.lifeNumber -= enemyImpact;
 
-        const iteration = this.parameter.enemyImpact;
+        const iteration = enemyImpact;
         for (let i = 0; i < iteration; i++) {
             this.scene.remove(this.parameter.lifePoints[0][0], this.parameter.lifePoints[0][1]);
             this.parameter.lifePoints.splice(0, 1);
