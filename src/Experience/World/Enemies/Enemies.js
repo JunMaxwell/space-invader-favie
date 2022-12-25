@@ -149,6 +149,10 @@ export default class Enemies {
         return wave;
     }
 
+    incrementWaveDestroyed() {
+        console.log("incrementWaveDestroyed")
+    }
+
     moveEnemyGroupToDestination(_group, destination, deltaT, onReached) {
         const { delayBetweenSteps } = _group.userData;
         const speed = 1 / delayBetweenSteps;
