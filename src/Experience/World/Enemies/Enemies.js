@@ -54,7 +54,7 @@ export default class Enemies {
 
         if (this.waves && this.waves.length > 0) {
             this.waves.forEach(wave => {
-                wave.enemies.forEach(enemy => {
+                wave.groups.forEach(enemy => {
                     this.scene.remove(enemy);
                 })
             })
@@ -111,18 +111,18 @@ export default class Enemies {
     }
 
     createWave(_wave) {
-        const enemies = this;
+        const controller = this;
         const wave = {
             waveNumber: _wave.waveNumber,
             waveColor: _wave.waveColor,
             delayBetweenSteps: _wave.delayBetweenSteps,
-            enemies: []
+            groups: []
         };
 
         for (let i = 0; i < _wave.enemyBehavior.length; i++) {
             const { type, total, startPosition, path } = _wave.enemyBehavior[i];
             const enemyParam = {
-                ...enemies.parameter.enemiesParameters[type],
+                ...controller.parameter.enemiesParameters[type],
                 name: type,
                 waveNumber: _wave.waveNumber,
                 waveColor: _wave.waveColor,
@@ -137,24 +137,24 @@ export default class Enemies {
             enemyGroup.userData.isAlive = true;
 
             for (let j = 0; j < total; j++) {
-                const enemyMesh = enemies.createEnemy(enemyParam);
+                const enemyMesh = controller.createEnemy(enemyParam);
                 enemyMesh.position.x = enemyParam.xOffset / 2 * j;
                 enemyGroup.add(enemyMesh);
             }
 
-            wave.enemies.push(enemyGroup);
+            wave.groups.push(enemyGroup);
             // enemies.scene.add(enemyGroup);
         }
 
         return wave;
     }
 
-    moveEnemyGroupToDestination(_enemy, destination, deltaT, onReached) {
-        const { delayBetweenSteps } = _enemy.userData;
+    moveEnemyGroupToDestination(_group, destination, deltaT, onReached) {
+        const { delayBetweenSteps } = _group.userData;
         const speed = 1 / delayBetweenSteps;
-        const distance = _enemy.position.distanceTo(destination);
+        const distance = _group.position.distanceTo(destination);
         const t = 1.0 - Math.pow(0.1, deltaT * speed);
-        _enemy.position.lerp(destination, t);
+        _group.position.lerp(destination, t);
 
         if (distance < 0.01) {
             onReached();
@@ -164,19 +164,19 @@ export default class Enemies {
     updateEnemyWave(_wave, deltaT) {
         if (!this.activeGroup)
             this.activeGroup = {
-                total: _wave.enemies.length,
-                alive: _wave.enemies.length,
+                total: _wave.groups.length,
+                alive: _wave.groups.length,
                 dead: [],
                 reached: [],
-                flying: [..._wave.enemies],
+                flying: [..._wave.groups],
                 hit: 0,
             };
 
-        const { enemies } = _wave;
+        const { groups } = _wave;
 
         if (this.activeGroup.alive === 0 || this.activeGroup.hit === this.activeGroup.total) {
             this.waveController.activeWave++;
-            enemies.forEach(enemyGroup => {
+            groups.forEach(enemyGroup => {
                 setTimeout(() => {
                     this.scene.remove(enemyGroup);
                 }, 1000);
@@ -184,8 +184,8 @@ export default class Enemies {
             return;
         }
 
-        for (let i = 0; i < enemies.length; i++) {
-            const enemyGroup = enemies[i];
+        for (let i = 0; i < groups.length; i++) {
+            const enemyGroup = groups[i];
             if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
                 if (!enemyGroup.parent || !enemyGroup.parent.isScene) {
                     this.scene.add(enemyGroup);
