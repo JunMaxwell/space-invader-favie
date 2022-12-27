@@ -119,7 +119,6 @@ export default class Player {
                 }
             }
 
-
             if (this.rockets[rocket].position.x < this.parameter.maxRocketPosition.x
                 && this.rockets[rocket].position.x > this.parameter.minRocketPosition.x
                 && this.rockets[rocket].position.y < this.parameter.maxRocketPosition.y

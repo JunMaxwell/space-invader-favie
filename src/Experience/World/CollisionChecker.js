@@ -21,29 +21,40 @@ export default class CollisionChecker {
         // Detect when enemy wave get to the player level, if so loose a life point
         // Imagine an effect if rockets color is not same the enemy
 
-        const { rockets } = this.player;
+        let { rockets } = this.player;
 
-        if (!this.enemyController.activeGroup || rockets?.length < 1) return;
-        this.enemyController.activeGroup.flying.forEach(enemyGroup => {
-            for (let i = 0; i < rockets.length; i++) {
+        if (!this.enemyController.activeEnemies || rockets?.length < 1) return;
+        this.enemyController.activeEnemies.flying.forEach(enemy => {
+            for (let i in rockets) {
                 const rocket = rockets[i];
-                if (rocket.userData.collided) continue;
-                const rocketOBB = rocket.userData.obb;
-                for (const enemy of enemyGroup.children) {
+                if (!rocket.userData.collided || !rocket.userData.destroyed) {
                     const { obb } = enemy.userData;
+                    const rocketOBB = rocket.userData.obb;
                     if (rocketOBB.intersectsOBB(obb)) {
-                        this.rocketHit(rocket);
+                        this.rocketHit(rocket, enemy);
                     }
                 }
             }
         })
     }
 
-    rocketHit(rocket) {
-        console.log("Hit")
+    rocketHit(rocket, enemy) {
+        if (enemy.userData.destroyed || rocket.userData.collided || rocket.userData.destroyed) return;
+
+        if (colorCompare(rocket.userData.color, enemy.userData.color)) {
+            this.rocketDestroy(rocket);
+            this.enemyDestroy(enemy);
+        } else {
+            this.rocketBounce(rocket);
+        }
+
+        function colorCompare(color1, color2) {
+            return color1.r === color2.r && color1.g === color2.g && color1.b === color2.b
+        }
     }
 
     destroyRocket(rockets, rocket) {
+        if (!rockets[rocket] | rockets[rocket].userData.destroyed) return;
         rockets[rocket].userData.collided = true;
 
         rockets[rocket].geometry.dispose();
@@ -78,15 +89,19 @@ export default class CollisionChecker {
         rocket.userData.destroyed = true;
     }
 
+    enemyDestroy(enemy) {
+        this.enemyController.destroyEnemy(enemy);
+    }
+
     checkCollisionBottom() {
-        if (!this.enemyController.activeGroup) return;
-        if (this.enemyController.activeGroup.reached && this.enemyController.activeGroup.reached.length > 0) {
-            this.enemyController.activeGroup.reached.forEach((enemyGroup) => {
-                if (enemyGroup.position.y < this.parameter.minY && this.parameter.defeat !== 200) {
+        if (!this.enemyController.activeEnemies) return;
+        if (this.enemyController.activeEnemies.reached && this.enemyController.activeEnemies.reached.length > 0) {
+            this.enemyController.activeEnemies.reached.forEach((enemy) => {
+                if (enemy.position.y < this.parameter.minY && this.parameter.defeat !== 200) {
                     let enemyImpact = this.parameter.enemyImpact ?? 1;
                     this.loseLifePoints(enemyImpact);
-                    this.enemyController.activeGroup.reached.splice(this.enemyController.activeGroup.reached.indexOf(enemyGroup), 1);
-                    this.scene.remove(enemyGroup);
+                    this.enemyController.activeEnemies.reached.splice(this.enemyController.activeEnemies.reached.indexOf(enemyGroup), 1);
+                    this.scene.remove(enemy);
                 }
             })
         }

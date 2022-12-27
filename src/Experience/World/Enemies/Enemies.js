@@ -42,19 +42,19 @@ export default class Enemies {
     }
 
     removeActivesFromScene() {
-        if (this.activeGroup) {
-            this.activeGroup.reached.forEach(enemyGroup => {
+        if (this.activeEnemies) {
+            this.activeEnemies.reached.forEach(enemyGroup => {
                 this.scene.remove(enemyGroup);
             });
-            this.activeGroup.dead.forEach(enemyGroup => {
+            this.activeEnemies.dead.forEach(enemyGroup => {
                 this.scene.remove(enemyGroup);
             })
-            delete this.activeGroup;
+            delete this.activeEnemies;
         }
 
         if (this.waves && this.waves.length > 0) {
             this.waves.forEach(wave => {
-                wave.groups.forEach(enemy => {
+                wave.enemies.forEach(enemy => {
                     this.scene.remove(enemy);
                 })
             })
@@ -108,6 +108,16 @@ export default class Enemies {
 
         this.scene.remove(_enemy);
         this.enemies = this.enemies.filter(enemy => enemy.uuid !== _enemy.uuid);
+
+        if (this.activeEnemies) {
+            this.activeEnemies.flying.filter(enemy => enemy.uuid !== _enemy.uuid);
+            this.activeEnemies.reached.filter(enemy => enemy.uuid !== _enemy.uuid);
+
+            if (!this.activeEnemies.dead.includes(_enemy)) {
+                this.activeEnemies.dead.push(_enemy);
+                this.activeEnemies.hit = this.activeEnemies.dead.length;
+            }
+        }
     }
 
     createWave(_wave) {
@@ -116,7 +126,7 @@ export default class Enemies {
             waveNumber: _wave.waveNumber,
             waveColor: _wave.waveColor,
             delayBetweenSteps: _wave.delayBetweenSteps,
-            groups: []
+            enemies: []
         };
 
         for (let i = 0; i < _wave.enemyBehavior.length; i++) {
@@ -127,22 +137,16 @@ export default class Enemies {
                 waveNumber: _wave.waveNumber,
                 waveColor: _wave.waveColor,
             };
-            const enemyGroup = new THREE.Group();
-            enemyGroup.name = type + "_group";
-            enemyGroup.position.copy(startPosition);
-            enemyGroup.userData.path = path;
-            enemyGroup.userData.steps = path.length;
-            enemyGroup.userData.currentStep = 0;
-            enemyGroup.userData.delayBetweenSteps = _wave.delayBetweenSteps;
-            enemyGroup.userData.isAlive = true;
 
-            for (let j = 0; j < total; j++) {
-                const enemyMesh = controller.createEnemy(enemyParam);
-                enemyMesh.position.x = enemyParam.xOffset / 2 * j;
-                enemyGroup.add(enemyMesh);
-            }
+            const enemy = controller.createEnemy(enemyParam);
+            enemy.position.copy(startPosition);
+            enemy.userData.path = path;
+            enemy.userData.steps = path.length;
+            enemy.userData.currentStep = 0;
+            enemy.userData.delayBetweenSteps = _wave.delayBetweenSteps;
+            enemy.userData.isAlive = true;
 
-            wave.groups.push(enemyGroup);
+            wave.enemies.push(enemy);
             // enemies.scene.add(enemyGroup);
         }
 
@@ -153,12 +157,12 @@ export default class Enemies {
         console.log("incrementWaveDestroyed")
     }
 
-    moveEnemyGroupToDestination(_group, destination, deltaT, onReached) {
-        const { delayBetweenSteps } = _group.userData;
+    moveEnemyGroupToDestination(_enemy, destination, deltaT, onReached) {
+        const { delayBetweenSteps } = _enemy.userData;
         const speed = 1 / delayBetweenSteps;
-        const distance = _group.position.distanceTo(destination);
+        const distance = _enemy.position.distanceTo(destination);
         const t = 1.0 - Math.pow(0.1, deltaT * speed);
-        _group.position.lerp(destination, t);
+        _enemy.position.lerp(destination, t);
 
         if (distance < 0.01) {
             onReached();
@@ -166,55 +170,59 @@ export default class Enemies {
     }
 
     updateEnemyWave(_wave, deltaT) {
-        if (!this.activeGroup)
-            this.activeGroup = {
-                total: _wave.groups.length,
-                alive: _wave.groups.length,
+        if (!this.activeEnemies)
+            this.activeEnemies = {
+                total: _wave.enemies.length,
+                alive: _wave.enemies.length,
                 dead: [],
                 reached: [],
-                flying: [..._wave.groups],
+                flying: [..._wave.enemies],
                 hit: 0,
             };
 
-        const { groups } = _wave;
+        const { enemies } = _wave;
 
-        if (this.activeGroup.alive === 0 || this.activeGroup.hit === this.activeGroup.total) {
-            this.waveController.activeWave++;
-            groups.forEach(enemyGroup => {
+        if (this.activeEnemies.alive < 0
+            || this.activeEnemies.hit === this.activeEnemies.total
+            || this.activeEnemies.reached.length === this.activeEnemies.total
+            || this.activeEnemies.dead.length === this.activeEnemies.total) {
+            enemies.forEach(enemy => {
                 setTimeout(() => {
-                    this.scene.remove(enemyGroup);
+                    this.scene.remove(enemy);
                 }, 1000);
             });
+            
+            this.waveController.activeWave++;
             return;
         }
 
-        for (let i = 0; i < groups.length; i++) {
-            const enemyGroup = groups[i];
-            if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
-                if (!enemyGroup.parent || !enemyGroup.parent.isScene) {
-                    this.scene.add(enemyGroup);
+        for (let i = 0; i < enemies.length; i++) {
+            const enemy = enemies[i];
+            if (!this.activeEnemies.dead.includes(enemy) && !this.activeEnemies.reached.includes(enemy)) {
+                if (!enemy.parent || !enemy.parent.isScene) {
+                    this.scene.add(enemy);
                 }
             }
-            const { currentStep, steps, path, isAlive } = enemyGroup.userData;
+            const { currentStep, steps, path, isAlive } = enemy.userData;
 
             if (isAlive) {
                 if (currentStep < steps) {
                     const destination = path[currentStep];
-                    this.moveEnemyGroupToDestination(enemyGroup, destination, deltaT, () => {
-                        enemyGroup.userData.currentStep++;
+                    this.moveEnemyGroupToDestination(enemy, destination, deltaT, () => {
+                        enemy.userData.currentStep++;
                     });
                 } else {
-                    if (!this.activeGroup.reached.includes(enemyGroup)) {
-                        this.activeGroup.hit++;
-                        this.activeGroup.reached.push(enemyGroup);
-                        this.activeGroup.flying.splice(this.activeGroup.flying.indexOf(enemyGroup), 1);
+                    if (!this.activeEnemies.reached.includes(enemy)) {
+                        this.activeEnemies.hit++;
+                        this.activeEnemies.reached.push(enemy);
+                        this.activeEnemies.flying.splice(this.activeEnemies.flying.indexOf(enemy), 1);
                     }
                 }
             } else {
-                if (!this.activeGroup.dead.includes(enemyGroup) && !this.activeGroup.reached.includes(enemyGroup)) {
-                    this.activeGroup.alive--;
-                    this.activeGroup.dead.push(enemyGroup);
-                    this.activeGroup.flying.splice(this.activeGroup.flying.indexOf(enemyGroup), 1);
+                if (!this.activeEnemies.dead.includes(enemy) && !this.activeEnemies.reached.includes(enemy)) {
+                    this.activeEnemies.alive--;
+                    this.activeEnemies.dead.push(enemy);
+                    this.activeEnemies.flying.splice(this.activeEnemies.flying.indexOf(enemy), 1);
                 }
             }
         }
@@ -226,6 +234,10 @@ export default class Enemies {
 
         setTimeout(() => {
             const wave = this.waves[this.waveController.activeWave];
+            console.log({
+                activeWave: this.waveController.activeWave,
+                wave
+            })
             if (!wave) return;
             this.updateEnemyWave(wave, deltaT);
         }, this.waveController.delayBetweenWaves) // 3 seconds
