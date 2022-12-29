@@ -67,6 +67,9 @@ export default class Layout {
         this.victory = new THREE.Mesh(this.parameter.selectorBackgroundGeometry, new THREE.MeshBasicMaterial({ map: this.resources.items.bravo, transparent: true }))
         this.victory.position.copy(this.parameter.selectorBackgroundPosition)
         this.victory.position.z = 2;
+        const button = new THREE.Mesh(this.parameter.lifeBackgroundGeometry, new THREE.MeshBasicMaterial({ map: this.resources.items.retry_button, transparent: true }));
+        button.position.set(this.parameter.lifeBackgroundPosition.x, this.parameter.lifeBackgroundPosition.y, 2)
+        this.victory.attach(button)
         this.victory.visible = false;
         this.scene.add(this.victory);
     }
@@ -144,8 +147,15 @@ export default class Layout {
 
             if (this.intersects[0] !== undefined) {
 
-                this.defeat.visible = false;
-                this.defeat.children[0].material.map = this.resources.items.retry_button
+                if (this.defeat.visible) {
+                    this.defeat.visible = false;
+                    this.defeat.children[0].material.map = this.resources.items.retry_button    
+                }
+
+                if (this.victory.visible) {
+                    this.victory.visible = false;
+                    this.victory.children[0].material.map = this.resources.items.retry_button
+                }
 
                 if (!this.parameter.secondPhase) {
                     this.parameter.reset(0, 0);

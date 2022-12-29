@@ -29,11 +29,9 @@ export default class Enemies {
         this.waveController = {
             activeWave: 0,
             totalWaves: this.waves.length,
-            delayBetweenWaves: 3000
-        }
-
-        this.delegate = {
-
+            delayBetweenWaves: 3000,
+            waveDestroyed: 0,
+            destroyedWave: new Set()
         }
     }
 
@@ -110,8 +108,7 @@ export default class Enemies {
         this.enemies = this.enemies.filter(enemy => enemy.uuid !== _enemy.uuid);
 
         if (this.activeEnemies) {
-            this.activeEnemies.flying.filter(enemy => enemy.uuid !== _enemy.uuid);
-            this.activeEnemies.reached.filter(enemy => enemy.uuid !== _enemy.uuid);
+            this.activeEnemies.flying.splice(this.activeEnemies.flying.indexOf(_enemy), 1);
 
             if (!this.activeEnemies.dead.includes(_enemy)) {
                 this.activeEnemies.dead.push(_enemy);
@@ -153,8 +150,16 @@ export default class Enemies {
         return wave;
     }
 
-    incrementWaveDestroyed() {
-        console.log("incrementWaveDestroyed")
+    incrementWaveDestroyed(destroyedWave) {
+        this.waveController.waveDestroyed++;
+        this.waveController.destroyedWave.add(destroyedWave);
+        if (this.waveController.waveDestroyed === this.waveController.totalWaves) {
+            this.layout.victory.visible = true;
+            this.parameter.canShoot = false;
+            this.parameter.setVictory();
+
+            this.layout.reloadTimer()
+        }
     }
 
     moveEnemyGroupToDestination(_enemy, destination, deltaT, onReached) {
@@ -164,6 +169,9 @@ export default class Enemies {
         const t = 1.0 - Math.pow(0.1, deltaT * speed);
         _enemy.position.lerp(destination, t);
 
+        _enemy.userData.obb.copy(_enemy.geometry.userData.obb);
+        _enemy.userData.obb.applyMatrix4(_enemy.matrixWorld);
+
         if (distance < 0.01) {
             onReached();
         }
@@ -172,6 +180,7 @@ export default class Enemies {
     updateEnemyWave(_wave, deltaT) {
         if (!this.activeEnemies)
             this.activeEnemies = {
+                waveNum: _wave.waveNumber,
                 total: _wave.enemies.length,
                 alive: _wave.enemies.length,
                 dead: [],
@@ -185,14 +194,11 @@ export default class Enemies {
         if (this.activeEnemies.alive < 0
             || this.activeEnemies.hit === this.activeEnemies.total
             || this.activeEnemies.reached.length === this.activeEnemies.total
-            || this.activeEnemies.dead.length === this.activeEnemies.total) {
-            enemies.forEach(enemy => {
-                setTimeout(() => {
-                    this.scene.remove(enemy);
-                }, 1000);
-            });
-            
-            this.waveController.activeWave++;
+            || this.activeEnemies.dead.length === this.activeEnemies.total
+            || this.activeEnemies.flying.length === 0) {
+            this.waveController.activeWave = this.activeEnemies.waveNum; // Wave Number will be activeWave + 1, so to jump to next wave, we just need to assign activeWave to current wave number
+            this.incrementWaveDestroyed(_wave)
+            delete this.activeEnemies;
             return;
         }
 
@@ -234,10 +240,6 @@ export default class Enemies {
 
         setTimeout(() => {
             const wave = this.waves[this.waveController.activeWave];
-            console.log({
-                activeWave: this.waveController.activeWave,
-                wave
-            })
             if (!wave) return;
             this.updateEnemyWave(wave, deltaT);
         }, this.waveController.delayBetweenWaves) // 3 seconds

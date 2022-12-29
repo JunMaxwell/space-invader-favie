@@ -95,35 +95,50 @@ export default class CollisionChecker {
 
     checkCollisionBottom() {
         if (!this.enemyController.activeEnemies) return;
-        if (this.enemyController.activeEnemies.reached && this.enemyController.activeEnemies.reached.length > 0) {
-            this.enemyController.activeEnemies.reached.forEach((enemy) => {
-                if (enemy.position.y < this.parameter.minY && this.parameter.defeat !== 200) {
-                    let enemyImpact = this.parameter.enemyImpact ?? 1;
-                    this.loseLifePoints(enemyImpact);
-                    this.enemyController.activeEnemies.reached.splice(this.enemyController.activeEnemies.reached.indexOf(enemyGroup), 1);
-                    this.scene.remove(enemy);
-                }
-            })
-        }
+        // if (this.enemyController.activeEnemies.reached && this.enemyController.activeEnemies.reached.length > 0) {
+        //     this.enemyController.activeEnemies.reached.forEach((enemy) => {
+        //         if (enemy.position.y < this.parameter.minY && this.parameter.defeat !== 200) {
+        //             let enemyImpact = this.parameter.enemyImpact ?? 1;
+        //             this.loseLifePoints(enemyImpact);
+        //             this.enemyController.activeEnemies.reached.splice(this.enemyController.activeEnemies.reached.indexOf(enemy), 1);
+        //             this.scene.remove(enemy);
+        //         }
+        //     })
+        // }
+
+        const { colliderZone } = this.player;
+        const colliderZoneOBB = colliderZone.userData.obb;
+        this.enemyController.activeEnemies.flying.forEach(enemy => {
+            const { obb } = enemy.userData;
+            if (colliderZoneOBB.intersectsOBB(obb)) {
+                enemy.userData.alive = false;
+                this.enemyController.activeEnemies.reached.push(enemy);
+                this.enemyController.activeEnemies.flying.splice(this.enemyController.activeEnemies.flying.indexOf(enemy), 1);
+                this.loseLifePoints(this.parameter.enemyImpact ?? 1);
+                this.scene.remove(enemy);
+            }
+        })
+
     }
 
     loseLifePoints(enemyImpact) {
 
         this.parameter.lifeNumber -= enemyImpact;
 
-        const iteration = enemyImpact;
-        for (let i = 0; i < iteration; i++) {
-            this.scene.remove(this.parameter.lifePoints[0][0], this.parameter.lifePoints[0][1]);
-            this.parameter.lifePoints.splice(0, 1);
-        }
-
-        if (this.parameter.lifeNumber == 0) {
+        if (this.parameter.lifeNumber == 0 || this.parameter.lifePoints.length < 1) {
 
             this.layout.defeat.visible = true;
             this.parameter.canShoot = false;
             this.parameter.defeat = 200;
 
-            this.layout.reloadTimer()
+            this.layout.reloadTimer();
+            return
+        }
+
+        const iteration = enemyImpact;
+        for (let i = 0; i < iteration; i++) {
+            this.scene.remove(this.parameter.lifePoints[0][0], this.parameter.lifePoints[0][1]);
+            this.parameter.lifePoints.splice(0, 1);
         }
     }
 
