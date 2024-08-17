@@ -1,8 +1,11 @@
 {
+  "homepage": "https://junmaxwell.github.io/space-invader-favie/",
   "repository": "#",
   "license": "UNLICENSED",
   "scripts": {
     "build": "webpack --config ./bundler/webpack.prod.js",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist",
     "dev": "webpack serve --config ./bundler/webpack.dev.js"
   },
   "dependencies": {
@@ -27,6 +30,7 @@
     "webpack-merge": "^5.8.0"
   },
   "devDependencies": {
+    "gh-pages": "^6.1.1",
     "lil-gui": "^0.17.0"
   }
 }
